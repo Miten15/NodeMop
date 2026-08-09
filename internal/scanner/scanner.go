@@ -57,8 +57,10 @@ func Scan(root string, oldAfter time.Duration) ([]project.Project, error) {
 		return nil, err
 	}
 
-	// Avoid reporting nested workspaces as separate projects when their parent
-	// already contains a package.json. We can later add monorepo-aware scanning.
+	// Avoid reporting nested package.json files as separate projects when their
+	// parent package already represents the same project. A linked Git worktree
+	// still works because Git metadata is detected via `git rev-parse`, not by
+	// requiring a .git directory.
 	sort.Strings(projectRoots)
 	filtered := make([]string, 0, len(projectRoots))
 	for _, candidate := range projectRoots {
@@ -102,8 +104,10 @@ func inspect(path string, oldAfter time.Duration) project.Project {
 		Framework: detectFramework(filepath.Join(path, "package.json")),
 	}
 
-	if stat, err := os.Stat(filepath.Join(path, ".git")); err == nil && stat.IsDir() {
+	if inside, gitRoot, worktree := gitx.RepositoryInfo(path); inside {
 		p.HasGit = true
+		p.GitRoot = gitRoot
+		p.IsWorktree = worktree
 		p.LastActivity = gitLastCommit(path)
 		p.RemoteURL = gitRemote(path)
 		p.HasRemote = p.RemoteURL != ""
