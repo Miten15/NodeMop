@@ -88,7 +88,6 @@ var (
 	accentStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#58A6FF")).Bold(true)
 	warnStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#D29922")).Bold(true)
 	successStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#3FB950")).Bold(true)
-	mascotStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B4A")).Bold(true)
 )
 
 func New(root string) Model {
@@ -477,24 +476,8 @@ func (m Model) View() tea.View {
 	return tea.NewView(content)
 }
 
-func mascotBanner() string {
-	// Block characters render consistently across Windows Terminal, Linux, and macOS.
-	return strings.TrimSpace(`
-    ██████████████
-  ███            ███
-████    ██    ██    ████
-████                ████      ██
-  ███            ███       ██
-    ██████████████        ██
-      ██  ██  ██        ██
-      ██      ██       ████████
-                      ████████████
-`)
-}
-
 func (m Model) header() string {
 	return titleStyle.Render("NodeMop") + "  " + dimStyle.Render("cross-platform developer project safety & cleanup") + "\n" +
-		mascotStyle.Render(mascotBanner()) + "\n" +
 		dimStyle.Render(m.root) + "\n\n"
 }
 
@@ -517,7 +500,7 @@ func (m Model) listView() string {
 	b.WriteString(fmt.Sprintf("%-3s %-24s %-12s %-10s %-13s %-13s %9s %9s\n", "", "PROJECT", "FRAMEWORK", "ACTIVITY", "GIT", "LAST ACTIVITY", "SIZE", "CLEAN"))
 	b.WriteString(strings.Repeat("─", 105) + "\n")
 
-	rows := m.height - 20
+	rows := m.height - 11
 	if rows < 5 {
 		rows = 5
 	}
