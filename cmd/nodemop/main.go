@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/example/nodemop/internal/tui"
+	"github.com/Miten15/NodeMop/internal/tui"
 )
 
 func main() {
