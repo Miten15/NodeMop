@@ -40,7 +40,7 @@ type ollamaTags struct {
 
 func ListOllamaModels(ctx context.Context) ([]OllamaModel, error) {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "http://127.0.0.1:11434/api/tags", nil)
-	client := &http.Client{Timeout: 2 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -169,12 +169,20 @@ func generateOllama(ctx context.Context, model, prompt string) (string, error) {
 	if strings.TrimSpace(model) == "" {
 		return "", errors.New("select an Ollama model first")
 	}
-	payload, _ := json.Marshal(map[string]any{"model": model, "prompt": prompt, "stream": false})
+	payload, _ := json.Marshal(map[string]any{
+		"model":      model,
+		"prompt":     prompt,
+		"stream":     false,
+		"keep_alive": "5m",
+	})
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "http://127.0.0.1:11434/api/generate", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := (&http.Client{Timeout: 90 * time.Second}).Do(req)
+	resp, err := (&http.Client{Timeout: 5 * time.Minute}).Do(req)
 	if err != nil {
-		return "", err
+		if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+			return "", fmt.Errorf("Ollama did not return a response within 5 minutes; the model may still be loading or the request may be too large: %w", err)
+		}
+		return "", fmt.Errorf("Ollama request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
