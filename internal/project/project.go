@@ -27,6 +27,8 @@ type Project struct {
 	Path           string
 	Framework      string
 	HasGit         bool
+	GitRoot        string
+	IsWorktree     bool
 	HasRemote      bool
 	RemoteURL      string
 	Branch         string
