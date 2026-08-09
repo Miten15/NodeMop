@@ -18,8 +18,61 @@ func Installed(name string) bool {
 	return err == nil
 }
 
+// RepositoryInfo detects Git repositories by asking Git itself instead of
+// looking for a .git directory. This is important for linked worktrees, where
+// .git is a file at the worktree root, and for projects nested below that root.
+func RepositoryInfo(path string) (inside bool, root string, worktree bool) {
+	if !Installed("git") {
+		return false, "", false
+	}
+	if output(path, "rev-parse", "--is-inside-work-tree") != "true" {
+		return false, "", false
+	}
+
+	root = output(path, "rev-parse", "--show-toplevel")
+	gitDir := output(path, "rev-parse", "--git-dir")
+	commonDir := output(path, "rev-parse", "--git-common-dir")
+
+	// In a linked worktree Git keeps the per-worktree git dir under
+	// <common git dir>/worktrees/<name>. Comparing canonical paths also works
+	// when Git returns relative paths on one platform and absolute paths on
+	// another.
+	gitDirAbs := resolveGitPath(path, gitDir)
+	commonDirAbs := resolveGitPath(path, commonDir)
+	if gitDirAbs != "" && commonDirAbs != "" && !samePath(gitDirAbs, commonDirAbs) {
+		worktree = true
+	}
+	return true, root, worktree
+}
+
+func resolveGitPath(base, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if !filepath.IsAbs(value) {
+		value = filepath.Join(base, value)
+	}
+	abs, err := filepath.Abs(value)
+	if err != nil {
+		return filepath.Clean(value)
+	}
+	return filepath.Clean(abs)
+}
+
+func samePath(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	// Windows paths are case-insensitive in the common/default setup. Using
+	// EqualFold is harmless on Linux/macOS here because these paths only come
+	// from the same Git invocation and should otherwise match exactly.
+	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+}
+
 func Inspect(path string) (branch string, changed int, ahead int, behind int, state project.GitState) {
-	if _, err := os.Stat(filepath.Join(path, ".git")); err != nil {
+	inside, _, _ := RepositoryInfo(path)
+	if !inside {
 		return "", 0, 0, 0, project.GitNone
 	}
 
@@ -65,7 +118,7 @@ func Init(path string) error {
 	if !Installed("git") {
 		return errors.New("git is not installed or not in PATH")
 	}
-	if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
+	if inside, _, _ := RepositoryInfo(path); inside {
 		return nil
 	}
 	if err := ensureSafeGitignore(path); err != nil {
