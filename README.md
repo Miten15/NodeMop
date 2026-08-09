@@ -1,68 +1,64 @@
 # NodeMop
 
-NodeMop is a Windows-first TUI for making old JavaScript/Node projects safe in Git, reclaiming generated-file storage, and preparing stale projects for archival.
+> Clean your dev graveyard without losing your code.
 
-## v0.3 — Git Safety + AI Helper
+NodeMop is an open-source, cross-platform terminal UI for finding forgotten JavaScript/TypeScript projects, making them safe in Git, and reclaiming disk space from generated files such as `node_modules`, `.next`, `dist`, and caches.
 
-v0.3 turns NodeMop from a disk cleaner into a developer-project safety tool.
+It is meant for the project folders most developers eventually accumulate: old React apps, experiments without Git, repos with uncommitted work, local commits that were never pushed, linked Git worktrees, and dependency folders taking up gigabytes of storage.
 
-### Project scan
+## What NodeMop does
 
-- Recursive discovery via `package.json`
-- Detects Next.js, React, React/Vite, Vue, Svelte, Remix, Vite and generic Node.js projects
-- Detects Git repositories and `origin` remotes
-- Detects uncommitted files
-- Detects ahead/behind status when an upstream branch exists
-- Shows `CLEAN`, `DIRTY`, `NO GIT`, `NO REMOTE`, `AHEAD`, `BEHIND`, or `DIVERGED`
-- Shows last activity, total size and reclaimable generated-file size
+### Discover projects
 
-### Safe Git workflow
+NodeMop recursively scans for `package.json` and currently recognizes:
 
-From a project's detail view:
+- Next.js
+- React
+- React + Vite
+- Vue
+- Svelte
+- Remix
+- Vite
+- generic Node.js projects
 
-- `i` initializes Git for projects without `.git`
-- NodeMop appends safety-oriented `.gitignore` entries before the first commit
-- `.env`, `.env.*`, `node_modules`, `.next`, build/cache output and logs are ignored by default
-- `c` creates a **private** GitHub repository named `bg-<project-name>` using GitHub CLI
-- NodeMop deliberately does **not** auto-push when creating the remote
-- `l` opens Lazygit inside the project so you can review files, commit and push yourself
-- returning from Lazygit automatically rescans Git state
+For every project it shows the framework, last activity, Git state, project size, and reclaimable generated-file size.
 
-This keeps the dangerous step visible: NodeMop prepares; Lazygit lets you decide exactly what is committed and pushed.
+### Understand Git safety
+
+NodeMop highlights projects as:
+
+- `NO GIT`
+- `NO REMOTE`
+- `DIRTY`
+- `AHEAD`
+- `BEHIND`
+- `DIVERGED`
+- `CLEAN`
+
+Git detection uses Git itself rather than assuming `.git` must be a directory. That means NodeMop also recognizes **linked Git worktrees** and projects located inside a worktree.
+
+From the project details screen you can initialize Git, create a private GitHub remote with `gh`, and open Lazygit directly in the project to review, stage, commit, pull, and push interactively.
+
+NodeMop deliberately does not silently push your code for you.
 
 ### AI project helper
 
-Press `a` for AI settings.
-
-#### Ollama
-
-NodeMop checks:
-
-```text
-http://127.0.0.1:11434/api/tags
-```
-
-and lets you cycle through installed local models. No API key is needed.
-
-#### Gemini
-
-- Press `k` to enter a Gemini API key
-- Press `m` to edit the Gemini model
-- Default model: `gemini-2.5-flash`
-- `GEMINI_API_KEY` is automatically detected if already set
-- Keys entered in the TUI are held in memory only; NodeMop does not write them to the project
-
-Press `g` from Project Safety to generate:
+NodeMop can optionally generate:
 
 - a short project summary
 - a GitHub repository description
 - a suggested archive/backup commit message
 
-For the AI context, NodeMop reads project metadata/README/config files plus a source **file map**. It does not read `.env` files or arbitrary source bodies, and lines that look like secrets are redacted from metadata sent to the summarizer.
+Supported providers:
 
-### Storage cleanup
+- **Ollama** — local models through `http://127.0.0.1:11434`
+- **Gemini** — using `GEMINI_API_KEY` or a key entered in the TUI
 
-`x` still performs the v0.2 safe cleanup and can remove only generated directories:
+For summarization, NodeMop reads project metadata, README/config files, and a source file map. It does not intentionally read `.env` files or arbitrary source bodies into the AI context, and secret-looking metadata lines are redacted.
+
+### Reclaim storage safely
+
+The cleanup action only removes generated directories:
 
 - `node_modules`
 - `.next`
@@ -72,46 +68,68 @@ For the AI context, NodeMop reads project metadata/README/config files plus a so
 - `.cache`
 - `.turbo`
 
-Source files and `.git` are never removed by this cleanup flow.
+Source files and `.git` are not removed by this cleanup flow.
+
+## Platform support
+
+NodeMop is designed to run on:
+
+- Windows
+- Linux
+- macOS
+
+It is written in Go and uses Bubble Tea for the terminal UI.
 
 ## Requirements
 
 Required:
 
-- Windows 10/11
 - Go 1.25+
 - Git
 
-Recommended for the Git workflow:
+Recommended:
 
-- Lazygit
-- GitHub CLI (`gh`) logged into GitHub
+- [Lazygit](https://github.com/jesseduffield/lazygit)
+- [GitHub CLI](https://cli.github.com/) (`gh auth login`)
 
-Optional AI provider:
+Optional AI:
 
-- Ollama running locally, **or**
-- Gemini API key
+- Ollama, or
+- a Gemini API key
 
-## Build
+## Build from source
 
-```powershell
-cd nodemop
+```bash
+git clone https://github.com/Miten15/NodeMop.git
+cd NodeMop
 go mod tidy
-go build -o nodemop.exe ./cmd/nodemop
+go build ./cmd/nodemop
 ```
 
-Run:
+### Windows
 
 ```powershell
+go build -o nodemop.exe ./cmd/nodemop
 .\nodemop.exe "C:\Users\YOURNAME\Projects"
 ```
 
-## Main controls
+### Linux / macOS
+
+```bash
+go build -o nodemop ./cmd/nodemop
+./nodemop "$HOME/projects"
+```
+
+You can point NodeMop at a broad folder such as `Documents`, `Projects`, or a development drive and let it discover projects recursively.
+
+## Controls
+
+### Project list
 
 | Key | Action |
 |---|---|
-| `↑` / `↓` | Navigate projects |
-| `Enter` | Inspect selected project |
+| `↑` / `↓` | Navigate |
+| `Enter` | Inspect project |
 | `Space` | Select/unselect |
 | `o` | Select old / unsafe Git projects |
 | `x` | Clean generated files |
@@ -119,48 +137,73 @@ Run:
 | `r` | Rescan |
 | `q` | Quit |
 
-### Project Safety screen
+### Project safety screen
 
 | Key | Action |
 |---|---|
-| `i` | Initialize Git + safety `.gitignore` |
-| `c` | Create private `bg-*` GitHub remote using `gh` |
+| `i` | Initialize Git + add NodeMop safety ignores |
+| `c` | Create a private `bg-*` GitHub remote with `gh` |
 | `l` | Open Lazygit in the project |
 | `g` | Generate AI Git suggestions |
 | `a` | AI settings |
 | `Esc` | Back |
 
-## Intended archival flow
+## Recommended workflow
 
 ```text
-scan
-  ↓
-NO GIT / DIRTY / NO REMOTE / AHEAD
-  ↓
-inspect
-  ↓
+scan projects
+    ↓
+find NO GIT / DIRTY / AHEAD / NO REMOTE
+    ↓
+inspect project
+    ↓
 optional AI summary
-  ↓
-git init (if required)
-  ↓
-create private GitHub remote (if required)
-  ↓
-Lazygit: review → stage → commit → push
-  ↓
-return to NodeMop
-  ↓
-rescan confirms Git state
-  ↓
+    ↓
+git init if required
+    ↓
+create private GitHub remote if required
+    ↓
+open Lazygit
+    ↓
+review → stage → commit → push
+    ↓
+return to NodeMop and rescan
+    ↓
 clean generated dependencies/build output
 ```
 
-## Next milestone
+## Ollama
 
-v0.4 should add the final archival guardrail:
+NodeMop discovers installed Ollama models from:
 
-- verify local HEAD exists on the remote
-- verify no uncommitted files remain
-- optional deletion of the complete local project only after both checks pass
-- Markdown/CSV archive report
-- batch "make my projects safe" queue
-- secret-warning pass before GitHub remote creation
+```text
+GET http://127.0.0.1:11434/api/tags
+```
+
+A small local model is enough for the current summarization task.
+
+## Roadmap
+
+- clearly label linked worktrees in the TUI
+- verify local `HEAD` exists on the remote before archive/delete actions
+- Markdown/CSV cleanup reports
+- batch “make my projects safe” workflow
+- better streaming/progress feedback for local LLM generation
+- optional full project deletion only after remote verification
+- additional developer project types beyond JavaScript/TypeScript
+
+## Safety philosophy
+
+NodeMop should make destructive actions boring and obvious. The intended order is:
+
+**understand → commit → push → verify → clean**
+
+not the other way around.
+
+## License
+
+NodeMop is open source under the [MIT License](LICENSE).
+
+## Contributing
+
+Issues and pull requests are welcome. If you find an edge case involving monorepos, worktrees, package managers, or generated directories, please include the project layout and platform so it can be reproduced safely.
