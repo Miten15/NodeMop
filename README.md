@@ -2,9 +2,9 @@
 
 > Clean your dev graveyard without losing your code.
 
-NodeMop is an open-source, cross-platform terminal UI for finding forgotten JavaScript/TypeScript projects, making them safe in Git, and reclaiming disk space from generated files such as `node_modules`, `.next`, `dist`, and caches.
+NodeMop is an open-source, cross-platform terminal UI for finding forgotten JavaScript/TypeScript projects, making them safe in Git, reclaiming disk space from generated files such as `node_modules`, `.next`, `dist`, and caches, and cleaning unused Docker resources.
 
-It is meant for the project folders most developers eventually accumulate: old React apps, experiments without Git, repos with uncommitted work, local commits that were never pushed, linked Git worktrees, and dependency folders taking up gigabytes of storage.
+It is meant for the project folders most developers eventually accumulate: old React apps, experiments without Git, repos with uncommitted work, local commits that were never pushed, linked Git worktrees, dependency folders taking up gigabytes of storage, and Docker leftovers from old development environments.
 
 ## What NodeMop does
 
@@ -56,9 +56,9 @@ Supported providers:
 
 For summarization, NodeMop reads project metadata, README/config files, and a source file map. It does not intentionally read `.env` files or arbitrary source bodies into the AI context, and secret-looking metadata lines are redacted.
 
-### Reclaim storage safely
+### Reclaim project storage safely
 
-The cleanup action only removes generated directories:
+The project cleanup action only removes generated directories:
 
 - `node_modules`
 - `.next`
@@ -69,6 +69,45 @@ The cleanup action only removes generated directories:
 - `.turbo`
 
 Source files and `.git` are not removed by this cleanup flow.
+
+### Docker Mop
+
+NodeMop also includes a dedicated Docker cleanup TUI:
+
+```bash
+nodemop docker
+```
+
+On Windows:
+
+```powershell
+.\nodemop.exe docker
+```
+
+Docker Mop inspects Docker storage and lets you selectively clean:
+
+- stopped containers
+- unused images
+- build cache
+- unused networks
+
+It also shows Docker's current storage and reclaimable-space summary.
+
+**Volumes are protected by default and Docker Mop does not prune them.** Persistent databases and other application data often live in Docker volumes, so NodeMop keeps them outside the normal cleanup path.
+
+Running containers are also left alone.
+
+Docker Mop controls:
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` or `j` / `k` | Navigate cleanup categories |
+| `Space` | Toggle category |
+| `a` | Select all safe categories |
+| `c` | Clear selection |
+| `x` / `Enter` | Review and clean selected categories |
+| `r` | Refresh Docker usage |
+| `Esc` / `q` | Exit Docker Mop |
 
 ## Platform support
 
@@ -82,7 +121,7 @@ It is written in Go and uses Bubble Tea for the terminal UI.
 
 ## Requirements
 
-Required:
+Required for project scanning:
 
 - Go 1.25+
 - Git
@@ -96,6 +135,11 @@ Optional AI:
 
 - Ollama, or
 - a Gemini API key
+
+Optional Docker cleanup:
+
+- Docker CLI
+- a running Docker engine / Docker Desktop
 
 ## Build from source
 
@@ -113,11 +157,23 @@ go build -o nodemop.exe ./cmd/nodemop
 .\nodemop.exe "C:\Users\YOURNAME\Projects"
 ```
 
+Docker Mop:
+
+```powershell
+.\nodemop.exe docker
+```
+
 ### Linux / macOS
 
 ```bash
 go build -o nodemop ./cmd/nodemop
 ./nodemop "$HOME/projects"
+```
+
+Docker Mop:
+
+```bash
+./nodemop docker
 ```
 
 You can point NodeMop at a broad folder such as `Documents`, `Projects`, or a development drive and let it discover projects recursively.
@@ -128,7 +184,7 @@ You can point NodeMop at a broad folder such as `Documents`, `Projects`, or a de
 
 | Key | Action |
 |---|---|
-| `↑` / `↓` | Navigate |
+| `↑` / `↓` or `j` / `k` | Navigate |
 | `Enter` | Inspect project |
 | `Space` | Select/unselect |
 | `o` | Select old / unsafe Git projects |
@@ -170,6 +226,10 @@ review → stage → commit → push
 return to NodeMop and rescan
     ↓
 clean generated dependencies/build output
+    ↓
+open Docker Mop
+    ↓
+remove stopped containers / unused images / build cache / networks
 ```
 
 ## Ollama
@@ -184,10 +244,11 @@ A small local model is enough for the current summarization task.
 
 ## Roadmap
 
-- clearly label linked worktrees in the TUI
 - verify local `HEAD` exists on the remote before archive/delete actions
 - Markdown/CSV cleanup reports
 - batch “make my projects safe” workflow
+- integrate Docker Mop into the main dashboard with a `d` shortcut
+- richer Docker resource inspection before pruning
 - better streaming/progress feedback for local LLM generation
 - optional full project deletion only after remote verification
 - additional developer project types beyond JavaScript/TypeScript
@@ -200,10 +261,12 @@ NodeMop should make destructive actions boring and obvious. The intended order i
 
 not the other way around.
 
+For Docker, the same principle applies: running containers and volumes are protected from the default cleanup flow.
+
 ## License
 
 NodeMop is open source under the [MIT License](LICENSE).
 
 ## Contributing
 
-Issues and pull requests are welcome. If you find an edge case involving monorepos, worktrees, package managers, or generated directories, please include the project layout and platform so it can be reproduced safely.
+Issues and pull requests are welcome. If you find an edge case involving monorepos, worktrees, package managers, Docker resources, or generated directories, please include the project layout and platform so it can be reproduced safely.
