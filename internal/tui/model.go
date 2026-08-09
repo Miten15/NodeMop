@@ -171,18 +171,25 @@ func (m Model) View() tea.View {
 }
 
 func mascotBanner() string { return strings.TrimSpace(`
-  (\_/)
-  (o.o)    __
-  /|_|\___/  \
-   / \     ==\=
+       .-''''-.
+     .'  _  _  '.
+    /   (o)(o)   \
+   |      /\\      |        __
+   |   .-.__.-.   |       /  \\
+    \\  '.__.'  /       /    |
+     '._      _.'       /     |
+       /|____|\\_______/      |
+      /_/    \\_\\        ___/
+        /_/\\_\\=========\\\\\\
+                       \\\\_\\_\\
 `) }
-func (m Model) header() string { return titleStyle.Render("NodeMop")+"  "+dimStyle.Render("cross-platform developer project safety & cleanup")+"\n"+dimStyle.Render(mascotBanner())+"\n"+dimStyle.Render(m.root)+"\n\n" }
+func (m Model) header() string { return titleStyle.Render("NodeMop")+"  "+dimStyle.Render("cross-platform developer project safety & cleanup")+"\n"+accentStyle.Render(mascotBanner())+"\n"+dimStyle.Render(m.root)+"\n\n" }
 
 func (m Model) listView() string {
 	var b strings.Builder;b.WriteString(m.header())
 	if m.loading{b.WriteString("Scanning projects and Git state…\n");return b.String()};if m.err!=nil{b.WriteString("Scan failed: "+m.err.Error()+"\n\nPress r to retry, q to quit.\n");return b.String()};if len(m.projects)==0{b.WriteString("No package.json projects found.\n");return b.String()}
 	b.WriteString(fmt.Sprintf("%-3s %-24s %-12s %-10s %-13s %-13s %9s %9s\n","","PROJECT","FRAMEWORK","ACTIVITY","GIT","LAST ACTIVITY","SIZE","CLEAN"));b.WriteString(strings.Repeat("─",105)+"\n")
-	rows:=m.height-16;if rows<5{rows=5};start:=0;if m.cursor>=rows{start=m.cursor-rows+1};end:=min(len(m.projects),start+rows)
+	rows:=m.height-22;if rows<5{rows=5};start:=0;if m.cursor>=rows{start=m.cursor-rows+1};end:=min(len(m.projects),start+rows)
 	for i:=start;i<end;i++{p:=m.projects[i];cur:="  ";if i==m.cursor{cur="> "};check:=" ";if m.selected[i]{check=selectedStyle.Render("✓")};b.WriteString(fmt.Sprintf("%s%s %-24s %-12s %-10s %-13s %-13s %9s %9s\n",cur,check,trim(p.Name,24),trim(p.Framework,12),styleStatus(p.Status),styleGitDisplay(p),age(p.LastActivity),bytes(p.SizeBytes),bytes(p.CleanupBytes)))}
 	var sel int;var clean int64;var unsafe int;for i,p:=range m.projects{if m.selected[i]{sel++;clean+=p.CleanupBytes};if !p.HasGit||!p.HasRemote||p.HasUncommitted||p.Ahead>0{unsafe++}}
 	b.WriteString("\n");if m.message!=""{b.WriteString(successStyle.Render(m.message)+"\n")};b.WriteString(fmt.Sprintf("%d projects • %d need Git attention • %d selected • %s reclaimable\n",len(m.projects),unsafe,sel,bytes(clean)));b.WriteString(dimStyle.Render("↑/↓ navigate  enter inspect  space select  o unsafe/old  x clean  a AI  r rescan  q quit")+"\n");return b.String()
